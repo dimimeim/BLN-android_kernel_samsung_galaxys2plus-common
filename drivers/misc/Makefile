@@ -81,6 +81,7 @@ obj-$(CONFIG_BCM_RFKILL)        += bcmbt_rfkill.o
 obj-$(CONFIG_BCM_BT_LPM)        += bcmbt_lpm.o
 obj-$(CONFIG_USB_SWITCH_TSU6721) += tsu6721.o
 obj-$(CONFIG_USB_SWITCH_FSA9485) += fsa9485.o
+obj-$(CONFIG_GENERIC_BLN) += bln.o
 obj-$(CONFIG_BCM_VC_SERVICES) += vc04_services/
 obj-$(CONFIG_BRCM_EMMC_RPMB)	+= emmc_rpmb/
 obj-$(CONFIG_SEC_MODEM)		+= modem_if/

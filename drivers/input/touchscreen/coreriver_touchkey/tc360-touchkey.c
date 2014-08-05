@@ -33,6 +33,8 @@
 #include <linux/wakelock.h>
 #include <linux/workqueue.h>
 #include <mach/pinmux.h>
+#include <linux/bln.h>
+
 
 #define TC360_CUR_FW_VER	0x09
 #define TC360_FW_NAME		"tc360_09.fw"
@@ -1517,6 +1519,54 @@ static struct attribute_group fac_attr_group = {
 };
 #endif
 
+#ifdef CONFIG_GENERIC_BLN
+
+struct tc360_data *bln_tc360_data;
+
+static int tc360_enable_touchkey_bln(int led_mask)
+{
+
+ bln_tc360_data->led_brightness = 1;
+ gpio_set_value(TOUCHKEY_LDO_EN, 1);
+
+ return 0;
+}
+
+static int tc360_disable_touchkey_bln(int led_mask)
+{
+ bln_tc360_data->led_brightness = 0;
+ gpio_set_value(TOUCHKEY_LDO_EN, 0);
+
+ return 0;
+}
+
+
+static int tc360_power_on(void)
+{
+ bln_tc360_data->led_brightness = 1;
+ gpio_set_value(TOUCHKEY_LDO_EN, 1);
+ bln_tc360_data->pdata->power(true);
+ msleep(TC360_POWERON_DELAY);
+ return 0;
+}
+
+static int tc360_power_off(void)
+{
+ bln_tc360_data->led_brightness = 0;
+ gpio_set_value(TOUCHKEY_LDO_EN, 0);
+ bln_tc360_data->pdata->power(false);
+ msleep(TC360_POWERON_DELAY);
+ return 0;
+}
+
+static struct bln_implementation tc360_touchkey_bln = {
+ .enable = tc360_enable_touchkey_bln,
+ .disable = tc360_disable_touchkey_bln,
+ .power_on = tc360_power_on,
+ .power_off = tc360_power_off,
+ .led_count = 1
+};
+#endif
 
 static int tc360_init_interface(struct tc360_data *data)
 {
@@ -1751,6 +1801,11 @@ static int __devinit tc360_probe(struct i2c_client *client,
 	data->early_suspend.suspend = tc360_early_suspend;
 	data->early_suspend.resume = tc360_late_resume;
 	register_early_suspend(&data->early_suspend);
+#endif
+
+#ifdef CONFIG_GENERIC_BLN
+ bln_tc360_data = data;
+ register_bln_implementation(&tc360_touchkey_bln);
 #endif
 
 	dev_info(&client->dev, "successfully probed.\n");
