@@ -817,7 +817,7 @@ config GENERIC_BLN
 	default y
 	help
 	  Say Y here to enable the backlight notification
-	for android led-notification (modified liblight needed)
+	  for android led-notification (modified liblight needed)
 
 config GENERIC_BLN_EMULATE_BUTTONS_LED
 	bool "Emulate buttons led"
