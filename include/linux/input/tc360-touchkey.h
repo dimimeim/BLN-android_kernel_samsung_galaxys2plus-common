@@ -34,6 +34,8 @@ struct tc360_platform_data {
 	void	(*power)(bool);
 };
 
+void touchkey_led_on(bool on);
+
 #define SEC_FAC_TK
 #if defined(SEC_FAC_TK)
 extern struct class *sec_class;
