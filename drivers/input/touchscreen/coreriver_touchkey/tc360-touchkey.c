@@ -149,11 +149,10 @@ static void tc360_late_resume(struct early_suspend *h);
 void timer_off( unsigned long data )
 {
   touchkey_led_on(0);
-  LockLed = 0;
   int ret = del_timer( &my_timer );
 }
 
-static int find_timeout()
+static int find_timeout(int check_always_on)
 {
   int fd;
   char buf[1];
@@ -161,7 +160,7 @@ static int find_timeout()
 	int correct = 0;
 	int searchMS = 0;
 	int digits = 0;
-	int millis = 0;
+	int millis = -1;
 	char ms[] = "                        ";
 	int counter = 0;
 	int counter2 = 0;
@@ -200,18 +199,18 @@ static int find_timeout()
 			if (correct == 24) searchMS = 1;
     }
     printk("%d \n", millis);
+    if (millis == -1) millis = 5000;
     sys_close(fd);
   }
   set_fs(old_fs);
-  if (millis > 0) {
-		LockLed = 1;
+  if (check_always_on == 1 and millis > 0) touchkey_led_on(1);
+  else if (check_always_on != 1 and millis > 0) {
 		touchkey_led_on(1);
 		int ret;
 		ret = del_timer( &my_timer );
 		setup_timer( &my_timer, timer_off, 0 );
 		ret = mod_timer( &my_timer, jiffies + msecs_to_jiffies(millis) );
 		if (ret) printk("Error in mod_timer\n");
-    
   }
   return millis;
 }
@@ -242,9 +241,11 @@ printk("touchkey_led_on = %d\n", on);
 if (on)
 {
 gpio_set_value(TOUCHKEY_LDO_EN, 1);
+LockLed = 1;
 }
 else
 {
+LockLed = 0;
 gpio_set_value(TOUCHKEY_LDO_EN, 0);
 }
 }
@@ -275,7 +276,7 @@ break;
 case 1 ... 2:
 press = !(buf & TC360_KEY_PRESS_MASK);
 dev_err(&client->dev, "key[%3d] is %s\n", data->keycodes[key_index - 1], (press) ? "pressed" : "releaseed");
-find_timeout();
+if (data->led_brightness >= 1) find_timeout(0);
 input_report_key(data->input_dev, data->keycodes[key_index - 1], press);
 input_sync(data->input_dev);
 data->fdata->pressed[key_index - 1] = press;
@@ -1032,7 +1033,7 @@ return;
 }
 data->led_brightness = value;
 printk("[TouchKey] data->led_brightness=%d, prev_value=%d\n",data->led_brightness, prev_value);
-
+if (data->led_brightness >= 1) find_timeout(1);
 #if 0
 if (data->led_wq)
 queue_work(data->led_wq, &data->led_work);
@@ -1692,8 +1693,6 @@ printk(KERN_DEBUG "[TouchKey] resume\n");
 GPIO_pullup_setting(1);// pull up
 data->pdata->power(true);
 IsTouchkeyPowerOn = 1;
-if (data->led_brightness >= 1)
-find_timeout();
 printk("[TouchKey] enable_irq...\n");
 out:
 enable_irq(client->irq);
